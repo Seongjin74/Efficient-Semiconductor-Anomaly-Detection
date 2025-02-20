@@ -1,146 +1,202 @@
-# Semiconductor-Defect-Prediction-Using-ML  
-**반도체 센서 데이터를 활용한 결함 예측: 머신러닝과 차원 축소 기법을 이용한 접근**
+# Anomaly Detection in Modern Manufacturing Processes
+
+In modern manufacturing processes, data of limited quantity and varying quality are mixed, and the importance of analysis and prediction that effectively utilizes these data is growing. In particular, data in manufacturing processes include vast amounts of information collected from sensors along with various issues such as missing values, noise, and multicollinearity, and the preprocessing and transformation of data have a profound impact on the performance of the final predictive model. Accordingly, how efficiently the given data are preprocessed and which appropriate analytical techniques are applied play a key role in product quality management and anomaly detection.
+
+Semiconductor manufacturing processes are especially noteworthy from this perspective. In semiconductor manufacturing, it is essential to manage product quality and detect defects and abnormal signals early based on numerous sensor data. However, sensor data have several limitations, such as class imbalance, high dimensionality, missing values and noise, and multicollinearity; if these data are used as they are, the model’s performance may degrade and interpretation may become difficult.
+
+Existing studies have proposed methods to address these issues by supplementing the minority class data through oversampling techniques such as SMOTE or by introducing dimensionality reduction techniques such as PCA to remove noise while preserving essential information. In addition, there are attempts to improve predictive performance by combining various preprocessing techniques and classifiers through hybrid and ensemble methods.
+
+This study synthesizes the aforementioned previous research and aims to improve a machine learning model for anomaly detection using signal data. Specifically, the study applies preprocessing techniques such as missing value imputation, removal of constant values and noise, and alleviation of multicollinearity to the secom dataset and addresses class imbalance issues through SMOTE. Then, after enhancing data efficiency via hierarchical PCA and statistics-based feature selection, six classifiers are individually trained and evaluated to check the basic performance, followed by an optimal classifier selection process using GridSearchCV.
+
+This approach is expected to maximize the efficiency of data utilization in quality management and anomaly detection in manufacturing processes, and contribute to the development of more reliable predictive models. In this study, we compare and analyze the performance at each stage of the proposed integrated pipeline—from Stage 0 (raw data) to Stage 1 (SMOTE applied), Stage 2 (SMOTE + PCA), and Stage 3 (SMOTE + statistics-based feature selection + PCA + GridSearchCV)—to comprehensively evaluate the impact of preprocessing and optimization on the final model performance.
+
+The SECOM dataset is semiconductor manufacturing process data provided on November 18, 2008, consisting of 1,567 examples and 591 features. Each example contains sensor signals corresponding to a production unit along with a simple Pass/Fail label (including 104 Fail cases). This dataset includes various signals collected from actual processes, making meaningful feature selection and noise removal important.
 
 ---
 
-## 1. 서론
+## Table of Contents
 
-반도체 제조 공정에서는 수많은 센서 데이터를 통해 제품 품질 관리 및 이상 탐지가 이루어집니다.  
-그러나 이러한 데이터는 다음과 같은 문제점을 내포하고 있습니다.
-
-- **고차원성**: 수백 개의 피처로 인해 차원의 저주(curse of dimensionality)가 발생할 수 있음.
-- **클래스 불균형**: 정상(Pass)과 결함(Fail) 데이터 간의 비율 차이가 커 모델이 다수 클래스로 편향될 위험이 있음.
-- **결측치 및 노이즈**: 센서 측정 과정에서 발생하는 결측치와 노이즈가 데이터 신뢰성을 저하시킴.
-- **다중공선성**: 센서 데이터 간의 높은 상관관계로 인해 모델의 해석 및 일반화 성능에 악영향을 미칠 수 있음.
-
-본 연구에서는 SECOM 데이터셋을 대상으로, 위 문제들을 해결하기 위한 통합 하이브리드 파이프라인을 제안합니다. 이 파이프라인은 데이터 전처리, SMOTE를 통한 오버샘플링, 통계 기반 피처 선택, 계층적 PCA를 이용한 차원 축소, 그리고 GridSearchCV를 통한 분류기 최적화를 포함합니다.
-
----
-
-## 2. 관련 연구
-
-반도체 제조 및 결함 탐지 분야에서는 다음과 같은 기법들이 사용되어 왔습니다.
-
-- **데이터 전처리**: 결측치 보완, 단일 값 컬럼 제거, 다중공선성 문제 해결 등.
-- **클래스 불균형 해결**: SMOTE와 같은 오버샘플링 기법을 이용해 소수 클래스 데이터를 증강.
-- **차원 축소**: PCA 등 고차원 데이터의 노이즈 제거 및 주요 정보 보존.
-- **하이브리드/앙상블 기법**: 여러 전처리 기법과 분류기를 결합하여 예측 성능을 향상시키는 연구.
-
-본 연구는 위 기법들을 종합하여, 전처리부터 최적 분류기 선택까지 자동화된 통합 파이프라인을 제안합니다.
+1. [Introduction](#introduction)
+2. [Data Preprocessing](#data-preprocessing)
+   - [Missing Value Treatment](#missing-value-treatment)
+   - [Removal of Constant Values and Noise](#removal-of-constant-values-and-noise)
+   - [Removal of Time Data and Multicollinearity](#removal-of-time-data-and-multicollinearity)
+   - [Normalization](#normalization)
+   - [Visualization of Imbalanced Distribution](#visualization-of-imbalanced-distribution)
+3. [Model Training and Evaluation](#model-training-and-evaluation)
+   - [Step 1: Original Data (Imbalanced)](#step-1-original-data-imbalanced)
+   - [Step 2: Oversampling Using SMOTE](#step-2-oversampling-using-smote)
+   - [Step 3: SMOTE + PCA (Dimensionality Reduction)](#step-3-smote--pca-dimensionality-reduction)
+   - [Step 4: SMOTE + Statistics-Based Feature Selection + Hierarchical PCA + GridSearchCV](#step-4-smote--statistics-based-feature-selection--hierarchical-pca--gridsearchcv)
+4. [Final Evaluation and Comparative Analysis](#final-evaluation-and-comparative-analysis)
+5. [Conclusions and Future Research Directions](#conclusions-and-future-research-directions)
+6. [References](#references)
 
 ---
 
-## 3. 제안 방법론
+## Introduction
 
-제안하는 방법론은 다음 네 단계로 구성됩니다.
-
-### 3.1 데이터 전처리
-
-- **결측치 처리**:  
-  - 50% 이상 결측치가 있는 컬럼 제거 후, forward/backward fill 기법으로 나머지 결측치 보완.
-- **단일 값 및 노이즈 제거**:  
-  - 단일 값만 존재하는 컬럼 제거.
-- **시간 데이터 및 다중공선성 제거**:  
-  - "Time" 컬럼 제거.
-  - 상관계수 0.7 이상인 피처 제거.
-- **정규화**:  
-  - StandardScaler를 사용하여 피처 정규화.
-- **불균형 분포 시각화**:  
-  - 타깃 변수(Pass/Fail)의 불균형을 시각화하여 문제 인식.
-
-### 3.2 SMOTE를 이용한 오버샘플링
-
-- **문제**: 정상과 결함 클래스의 불균형으로 인해 모델이 다수 클래스에 치우치는 문제가 발생.
-- **해결 방법**: SMOTE를 적용하여 소수 클래스 데이터를 증강함.
-
-### 3.3 차원 축소 및 피처 선택
-
-두 가지 접근법을 사용합니다.
-
-1. **PCA**:  
-   - 전체 피처에 대해 PCA를 적용하여 노이즈 제거 및 차원 축소 수행.
-2. **통계 기반 하이브리드 피처 선택 및 계층적 PCA**:  
-   - Pearson 상관계수와 VarianceThreshold를 이용해 중요한 피처 선택.
-   - 선택된 피처들을 Feature Agglomeration을 통해 클러스터링하고, 각 클러스터별로 PCA 수행.
-
-### 3.4 분류기 선택 및 최적화
-
-- **후보 분류기**:  
-  - Decision Tree, Naive Bayes, Logistic Regression, K-NN, SVM, Neural Network(MLPClassifier)
-- **GridSearchCV를 통한 최적화**:  
-  - 파이프라인에 포함된 'hpca__n_clusters' 및 'classifier' 파라미터 조합을 평가하여 최적의 모델 선택.
-  - 5-겹 교차검증을 통해 f1_macro 점수를 기준으로 최적 모델 도출.
+In modern manufacturing processes, sensor data are often fraught with issues such as missing values, noise, and multicollinearity. Preprocessing these data and applying the right analytical techniques are essential steps for achieving high performance in predictive models used for product quality management and anomaly detection. Semiconductor manufacturing, in particular, relies heavily on numerous sensor data to manage quality and detect defects early, though challenges such as class imbalance and high dimensionality make this task nontrivial.
 
 ---
 
-## 4. 실험
+## Data Preprocessing
 
-### 4.1 데이터 전처리
+Data preprocessing is a critical stage that directly influences model performance. Below are the techniques applied:
 
-- **데이터 개요**:  
-  SECOM 데이터셋은 총 1567개의 샘플과 초기 592개의 피처로 구성됩니다.
-- **처리 과정**:  
-  - 50% 이상 결측치 컬럼 28개 제거, 단일 값 컬럼 116개 제거, "Time" 컬럼 제거  
-  - 다중공선성 제거 후 최종 205개 피처 남음  
-  - StandardScaler로 정규화  
-  - 타깃 분포 시각화를 통해 Pass와 Fail의 불균형 확인
+### Missing Value Treatment
 
-### 4.2 실험 설계
+- **Problem Identification:**  
+  Missing values frequently occur in manufacturing process data during sensor measurements and can act as noise during analysis and model training.
 
-실험은 네 단계로 나누어 진행하였습니다.
+- **Treatment Method:**  
+  - Remove columns containing more than 50% missing values.  
+  - For the remaining missing values, apply forward fill and backward fill methods, considering the order of the data to maintain continuity.
 
-1. **Step 1: 원본 데이터 (불균형)**  
-   - 6개 분류기를 개별적으로 학습/평가하여 기본 성능 확인.
-2. **Step 2: SMOTE 적용**  
-   - SMOTE를 적용한 후 6개 분류기의 성능 비교.
-3. **Step 3: SMOTE + PCA (차원 축소)**  
-   - SMOTE 후 전체 피처에 PCA를 적용하여 차원 축소 효과 분석.
-4. **Step 4: SMOTE + 통계 기반 피처 선택 + 계층적 PCA (최적화)**  
-   - 통계 기반 피처 선택 및 계층적 PCA를 적용한 후, GridSearchCV로 6개 후보 분류기 중 최적 모델 선택.
+- **Improvement Effects and Limitations:**  
+  - Reduces unnecessary noise by eliminating features with excessive missing values.  
+  - Minimizes data loss with appropriate imputation, though the sequential fill method may be less effective when data lack a clear temporal structure.
 
-### 4.3 하이퍼파라미터 선택
+### Removal of Constant Values and Noise
 
-- **hpca__n_clusters**: [10, 15, 20]  
-  - 계층적 PCA의 클러스터 수 조절로, 피처 그룹화를 최적화.
-- **classifier**:  
-  - 후보 분류기 6종 (Decision Tree, Naive Bayes, Logistic Regression, K-NN, SVM, Neural Network)을 모두 평가.
-- GridSearchCV를 통한 최적화 결과, 최종적으로 Neural Network(MLPClassifier)가 선택되었으며, 최적의 hpca 클러스터 수는 10으로 결정되었습니다.
+- **Problem Identification:**  
+  Columns that have the same value across all samples provide no distinguishing information and unnecessarily increase computational load.
+
+- **Treatment Method:**  
+  Remove columns that contain constant values across all rows.
+
+- **Improvement Effects and Limitations:**  
+  Enhances model training efficiency and reduces computational costs, though rarely some constant features might hold important information.
+
+### Removal of Time Data and Multicollinearity
+
+- **Time Data Removal:**  
+  Remove the 'Time' column, as it is not directly related to the analysis, to reduce dimensions and avoid introducing unnecessary noise.
+
+- **Multicollinearity Removal:**  
+  Identify features with a correlation coefficient of 0.7 or above and remove redundant features by keeping only one representative feature.
+
+- **Improvement Effects and Limitations:**  
+  Enhances model interpretability and reduces the risk of overfitting, but setting the correlation threshold requires careful consideration to avoid losing meaningful information.
+
+### Normalization
+
+- **Problem Identification:**  
+  Different feature scales can cause certain features to overly influence distance-based or probability-based algorithms.
+
+- **Treatment Method:**  
+  Use StandardScaler to normalize all features, transforming them to have a mean of 0 and a standard deviation of 1.
+
+- **Improvement Effects and Limitations:**  
+  Ensures each feature is compared on the same scale, improving model stability and convergence speed, although normalization might have minimal effect on some tree-based algorithms.
+
+### Visualization of Imbalanced Distribution
+
+- **Problem Identification:**  
+  The dataset is highly imbalanced (approximately 93.36% normal vs. 6.64% defective), risking bias toward the majority class.
+
+- **Treatment Method:**  
+  Visualize the target variable distribution to clearly understand the imbalance and motivate the use of oversampling techniques such as SMOTE.
+
+- **Improvement Effects and Limitations:**  
+  Helps in early detection of imbalance, though visualization alone does not resolve the issue and requires subsequent corrective measures.
 
 ---
 
-## 5. 실험 결과
+## Model Training and Evaluation
 
-### 5.1 Step 1: 원본 데이터 (불균형)
-- **평균 성능**:  
-  - Accuracy: 82.17%  
-  - TPR: 20.14%  
-  - FPR: 12.70%
-- **분석**:  
-  불균형으로 인해 소수 클래스에 대한 민감도가 낮음.
+After preprocessing, the dataset is split into training and test sets. Six classifiers (Decision Tree, Naive Bayes, Logistic Regression, K-NN, SVM, and Neural Network) are evaluated at each stage.
 
-### 5.2 Step 2: SMOTE 적용
-- **평균 성능**:  
-  - Accuracy: 70.59%  
-  - TPR: 38.19%  
-  - FPR: 26.72%
-- **분석**:  
-  SMOTE로 소수 클래스 민감도(TPR)는 향상되었으나, 위양성률(FPR)이 증가함.
+### Step 1: Original Data (Imbalanced)
 
-### 5.3 Step 3: SMOTE + PCA (차원 축소)
-- **평균 성능**:  
-  - Accuracy: 83.76%  
-  - TPR: 25.00%  
-  - FPR: 11.38%
-- **분석**:  
-  PCA로 차원을 축소하면서 노이즈를 제거하고 계산 복잡도를 낮춤. Accuracy와 FPR에서 개선 효과가 있음.
+- **Method Description:**  
+  Evaluate the classifiers using the preprocessed original data without addressing class imbalance.
 
-### 5.4 Step 4: SMOTE + 통계 기반 피처 선택 + 계층적 PCA (최적화)
-- **최종 Hybrid Model 성능**:  
-  - Accuracy: 89.17%  
-  - TPR: 25.00%  
-  - FPR: 5.52%
-- **분석**:  
-  통계 기반 피처 선택과 계층적 PCA를 통해 불필요한 피처를 제거하고 효과적인 차원 축소를 수행함으로써, Accuracy가 크게 향상되고 FPR이 현저히 감소함.
-- **최적 분류기 확인**:  
-  GridSearchCV 결과, 최종 선택된 분류기는 **MLPClassifier (Neural Network)**로 나타났습니다.
+- **Evaluation Metrics:**  
+  Accuracy, TPR (True Positive Rate), and FPR (False Positive Rate).
+
+- **Observations and Limitations:**  
+  - Accuracy appears high, but there is a bias toward the majority class.  
+  - TPR is low (around 20%), indicating insufficient detection of defects.
+
+### Step 2: Oversampling Using SMOTE
+
+- **Purpose:**  
+  Address class imbalance by artificially augmenting the minority class using SMOTE.
+
+- **Improvement Effects:**  
+  - Increased TPR for minority class detection (rising to approximately 37%).  
+  - However, FPR increases (around 27%), causing overall Accuracy to drop to the 70% range.
+
+- **Observations and Limitations:**  
+  Some models, such as K-NN, may show extremely high TPR but also an excessive FPR.
+
+### Step 3: SMOTE + PCA (Dimensionality Reduction)
+
+- **Purpose:**  
+  Apply PCA to the SMOTE-augmented data to reduce dimensionality and noise, addressing the “curse of dimensionality.”
+
+- **Improvement Effects:**  
+  - Reduces the feature set (e.g., from 204 to 50 components) and lowers noise.  
+  - Accuracy recovers to approximately 83.65% with FPR reduced to 11.38%.  
+  - TPR decreases slightly compared to the SMOTE-only stage, but the overall balance between precision and recall improves, leading to a higher F1 Score (approximately 0.5428).
+
+- **Observations and Limitations:**  
+  Some important information might be lost during dimensionality reduction, and performance improvements vary across models.
+
+### Step 4: SMOTE + Statistics-Based Feature Selection + Hierarchical PCA + GridSearchCV
+
+- **Purpose:**  
+  Combine statistics-based feature selection with hierarchical PCA for more effective feature extraction and dimensionality reduction. Optimize classifier selection using GridSearchCV.
+
+- **Hybrid Feature Selection:**  
+  - Calculate Pearson correlation coefficients between features and the target variable.  
+  - Apply VarianceThreshold to remove features with low correlation or variance, retaining only the most significant features.
+
+- **Hierarchical PCA:**  
+  - Cluster features and apply PCA within each cluster to effectively capture the most important information.
+
+- **Optimization Using GridSearchCV:**  
+  Perform cross-validation for multiple classifiers and parameters to select the optimal model.
+
+- **Improvement Effects and Limitations:**  
+  - Overall predictive performance (Accuracy, TPR, FPR, and F1 Score) is enhanced compared to using simple preprocessing or single techniques alone.  
+  - The increased computational cost and complexity of parameter optimization are notable challenges.
+
+---
+
+## Final Evaluation and Comparative Analysis
+
+- **Step 1 (Original Data):**  
+  - High Accuracy but low TPR and F1 Score due to class imbalance.
   
+- **Step 2 (SMOTE Applied):**  
+  - Improved TPR through data augmentation, but at the cost of increased FPR and lower overall Accuracy.
+  
+- **Step 3 (SMOTE + PCA):**  
+  - Dimensionality reduction reduced noise and improved Accuracy and F1 Score, though TPR remained slightly low.
+  
+- **Step 4 (Final Hybrid Model):**  
+  - The integrated pipeline (SMOTE + statistics-based feature selection + hierarchical PCA + GridSearchCV) achieved high Accuracy (89.81%) and extremely low FPR (4.14%), with a stable F1 Score (0.5728), making it well-suited for quality management in manufacturing processes.
+
+---
+
+## Conclusions and Future Research Directions
+
+- **Key Achievements:**  
+  - Improved data quality through preprocessing (missing value treatment, removal of constant/multicollinear features, normalization).  
+  - Addressed class imbalance using SMOTE.  
+  - Enhanced model performance through PCA and hierarchical PCA for dimensionality reduction and noise removal.  
+  - Achieved further performance optimization using statistics-based feature selection and GridSearchCV.
+
+- **Future Research Directions:**  
+  - Compare performance with deep neural networks or deep learning models.  
+  - Explore applications in real-time data streaming environments.  
+  - Investigate further combinations of various feature selection and dimensionality reduction techniques for more refined anomaly detection models.
+
+---
+
+## References
+
+[1] McCann, M. & Johnston, A. (2008). SECOM [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C54305.
+
