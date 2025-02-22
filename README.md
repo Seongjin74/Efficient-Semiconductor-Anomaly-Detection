@@ -1,202 +1,161 @@
-# Anomaly Detection in Modern Manufacturing Processes
+# Efficient Semiconductor Anomaly Detection
 
-In modern manufacturing processes, data of limited quantity and varying quality are mixed, and the importance of analysis and prediction that effectively utilizes these data is growing. In particular, data in manufacturing processes include vast amounts of information collected from sensors along with various issues such as missing values, noise, and multicollinearity, and the preprocessing and transformation of data have a profound impact on the performance of the final predictive model. Accordingly, how efficiently the given data are preprocessed and which appropriate analytical techniques are applied play a key role in product quality management and anomaly detection.
+**Note:** This project has been developed using a Jupyter Notebook (.ipynb) to enhance project visibility.  
+For details on the research paper, please refer to the **ESAD_Eng.pdf** file.  
+For the full code and implementation details, please check the **ML_Pipeline.ipynb** file.
 
-Semiconductor manufacturing processes are especially noteworthy from this perspective. In semiconductor manufacturing, it is essential to manage product quality and detect defects and abnormal signals early based on numerous sensor data. However, sensor data have several limitations, such as class imbalance, high dimensionality, missing values and noise, and multicollinearity; if these data are used as they are, the model’s performance may degrade and interpretation may become difficult.
-
-Existing studies have proposed methods to address these issues by supplementing the minority class data through oversampling techniques such as SMOTE or by introducing dimensionality reduction techniques such as PCA to remove noise while preserving essential information. In addition, there are attempts to improve predictive performance by combining various preprocessing techniques and classifiers through hybrid and ensemble methods.
-
-This study synthesizes the aforementioned previous research and aims to improve a machine learning model for anomaly detection using signal data. Specifically, the study applies preprocessing techniques such as missing value imputation, removal of constant values and noise, and alleviation of multicollinearity to the secom dataset and addresses class imbalance issues through SMOTE. Then, after enhancing data efficiency via hierarchical PCA and statistics-based feature selection, six classifiers are individually trained and evaluated to check the basic performance, followed by an optimal classifier selection process using GridSearchCV.
-
-This approach is expected to maximize the efficiency of data utilization in quality management and anomaly detection in manufacturing processes, and contribute to the development of more reliable predictive models. In this study, we compare and analyze the performance at each stage of the proposed integrated pipeline—from Stage 0 (raw data) to Stage 1 (SMOTE applied), Stage 2 (SMOTE + PCA), and Stage 3 (SMOTE + statistics-based feature selection + PCA + GridSearchCV)—to comprehensively evaluate the impact of preprocessing and optimization on the final model performance.
-
-The SECOM dataset is semiconductor manufacturing process data provided on November 18, 2008, consisting of 1,567 examples and 591 features. Each example contains sensor signals corresponding to a production unit along with a simple Pass/Fail label (including 104 Fail cases). This dataset includes various signals collected from actual processes, making meaningful feature selection and noise removal important.
+This repository implements a machine learning pipeline for anomaly detection in semiconductor manufacturing processes using sensor signals. The project is based on the SECOM dataset and integrates various preprocessing and optimization techniques including SMOTE, PCA, hierarchical PCA, statistical feature selection, and hyperparameter tuning via GridSearchCV.
 
 ---
 
 ## Table of Contents
 
 1. [Introduction](#introduction)
-2. [Data Preprocessing](#data-preprocessing)
-   - [Missing Value Treatment](#missing-value-treatment)
-   - [Removal of Constant Values and Noise](#removal-of-constant-values-and-noise)
-   - [Removal of Time Data and Multicollinearity](#removal-of-time-data-and-multicollinearity)
-   - [Normalization](#normalization)
-   - [Visualization of Imbalanced Distribution](#visualization-of-imbalanced-distribution)
-3. [Model Training and Evaluation](#model-training-and-evaluation)
-   - [Step 1: Original Data (Imbalanced)](#step-1-original-data-imbalanced)
-   - [Step 2: Oversampling Using SMOTE](#step-2-oversampling-using-smote)
-   - [Step 3: SMOTE + PCA (Dimensionality Reduction)](#step-3-smote--pca-dimensionality-reduction)
-   - [Step 4: SMOTE + Statistics-Based Feature Selection + Hierarchical PCA + GridSearchCV](#step-4-smote--statistics-based-feature-selection--hierarchical-pca--gridsearchcv)
-4. [Final Evaluation and Comparative Analysis](#final-evaluation-and-comparative-analysis)
-5. [Conclusions and Future Research Directions](#conclusions-and-future-research-directions)
-6. [References](#references)
+2. [Related Work](#related-work)
+3. [Proposed Method](#proposed-method)
+4. [Experiments](#experiments)
+   - [Data Preprocessing](#data-preprocessing)
+   - [Model Training and Evaluation](#model-training-and-evaluation)
+5. [Experimental Evaluation](#experimental-evaluation)
+6. [Conclusion and Future Work](#conclusion-and-future-work)
+7. [References](#references)
+8. [Usage](#usage)
+9. [Contact](#contact)
 
 ---
 
 ## Introduction
 
-In modern manufacturing processes, sensor data are often fraught with issues such as missing values, noise, and multicollinearity. Preprocessing these data and applying the right analytical techniques are essential steps for achieving high performance in predictive models used for product quality management and anomaly detection. Semiconductor manufacturing, in particular, relies heavily on numerous sensor data to manage quality and detect defects early, though challenges such as class imbalance and high dimensionality make this task nontrivial.
+Manufacturing processes, especially in semiconductor production, generate large volumes of sensor data that are often incomplete, noisy, and highly imbalanced. This project addresses these challenges by:
+
+- Preprocessing raw sensor data to manage missing values, noise, and multicollinearity.
+- Augmenting minority class data using SMOTE to counteract imbalanced data.
+- Reducing dimensionality through PCA and hierarchical PCA to extract key features.
+- Optimizing model performance using statistical feature selection and hyperparameter tuning via GridSearchCV.
+
+The primary goal is to develop a reliable anomaly detection system that improves quality control in semiconductor manufacturing.
 
 ---
 
-## Data Preprocessing
+## Related Work
 
-Data preprocessing is a critical stage that directly influences model performance. Below are the techniques applied:
+Several established methodologies have inspired this project:
 
-### Missing Value Treatment
-
-- **Problem Identification:**  
-  Missing values frequently occur in manufacturing process data during sensor measurements and can act as noise during analysis and model training.
-
-- **Treatment Method:**  
-  - Remove columns containing more than 50% missing values.  
-  - For the remaining missing values, apply forward fill and backward fill methods, considering the order of the data to maintain continuity.
-
-- **Improvement Effects and Limitations:**  
-  - Reduces unnecessary noise by eliminating features with excessive missing values.  
-  - Minimizes data loss with appropriate imputation, though the sequential fill method may be less effective when data lack a clear temporal structure.
-
-### Removal of Constant Values and Noise
-
-- **Problem Identification:**  
-  Columns that have the same value across all samples provide no distinguishing information and unnecessarily increase computational load.
-
-- **Treatment Method:**  
-  Remove columns that contain constant values across all rows.
-
-- **Improvement Effects and Limitations:**  
-  Enhances model training efficiency and reduces computational costs, though rarely some constant features might hold important information.
-
-### Removal of Time Data and Multicollinearity
-
-- **Time Data Removal:**  
-  Remove the 'Time' column, as it is not directly related to the analysis, to reduce dimensions and avoid introducing unnecessary noise.
-
-- **Multicollinearity Removal:**  
-  Identify features with a correlation coefficient of 0.7 or above and remove redundant features by keeping only one representative feature.
-
-- **Improvement Effects and Limitations:**  
-  Enhances model interpretability and reduces the risk of overfitting, but setting the correlation threshold requires careful consideration to avoid losing meaningful information.
-
-### Normalization
-
-- **Problem Identification:**  
-  Different feature scales can cause certain features to overly influence distance-based or probability-based algorithms.
-
-- **Treatment Method:**  
-  Use StandardScaler to normalize all features, transforming them to have a mean of 0 and a standard deviation of 1.
-
-- **Improvement Effects and Limitations:**  
-  Ensures each feature is compared on the same scale, improving model stability and convergence speed, although normalization might have minimal effect on some tree-based algorithms.
-
-### Visualization of Imbalanced Distribution
-
-- **Problem Identification:**  
-  The dataset is highly imbalanced (approximately 93.36% normal vs. 6.64% defective), risking bias toward the majority class.
-
-- **Treatment Method:**  
-  Visualize the target variable distribution to clearly understand the imbalance and motivate the use of oversampling techniques such as SMOTE.
-
-- **Improvement Effects and Limitations:**  
-  Helps in early detection of imbalance, though visualization alone does not resolve the issue and requires subsequent corrective measures.
+- **SMOTE (Synthetic Minority Over-sampling Technique):** Proposed by Chawla et al., SMOTE addresses class imbalance by generating synthetic examples of the minority class.
+- **Principal Component Analysis (PCA):** As described by Jolliffe, PCA is used for dimensionality reduction by preserving the most significant information while eliminating noise.
+- **Ensemble and Hybrid Methods:** Research by Breiman and others has demonstrated the effectiveness of combining multiple preprocessing and modeling techniques. These methods improve model robustness by mitigating weaknesses inherent to single techniques.
+- **Statistical Feature Selection:** Complementing PCA, statistical feature selection is employed to retain only the most relevant features, further enhancing model performance.
 
 ---
 
-## Model Training and Evaluation
+## Proposed Method
 
-After preprocessing, the dataset is split into training and test sets. Six classifiers (Decision Tree, Naive Bayes, Logistic Regression, K-NN, SVM, and Neural Network) are evaluated at each stage.
+The project introduces an integrated pipeline designed for the SECOM dataset. The main stages of the pipeline include:
 
-### Step 1: Original Data (Imbalanced)
+1. **Data Preprocessing:**
+   - Removal of columns with over 50% missing values.
+   - Imputation of missing values using forward and backward fill methods.
+   - Elimination of constant features and irrelevant columns (e.g., the 'Time' column).
+   - Handling multicollinearity by removing features with high correlation (correlation coefficient > 0.7).
+   - Normalization using StandardScaler to ensure all features are on the same scale.
 
-- **Method Description:**  
-  Evaluate the classifiers using the preprocessed original data without addressing class imbalance.
+2. **Class Imbalance Resolution:**
+   - Application of SMOTE to artificially augment the minority (defective) class.
 
-- **Evaluation Metrics:**  
-  Accuracy, TPR (True Positive Rate), and FPR (False Positive Rate).
+3. **Dimensionality Reduction and Feature Selection:**
+   - Use of PCA to reduce dimensionality and noise.
+   - Introduction of hierarchical PCA combined with statistical feature selection to extract and retain key information from the data.
 
-- **Observations and Limitations:**  
-  - Accuracy appears high, but there is a bias toward the majority class.  
-  - TPR is low (around 20%), indicating insufficient detection of defects.
-
-### Step 2: Oversampling Using SMOTE
-
-- **Purpose:**  
-  Address class imbalance by artificially augmenting the minority class using SMOTE.
-
-- **Improvement Effects:**  
-  - Increased TPR for minority class detection (rising to approximately 37%).  
-  - However, FPR increases (around 27%), causing overall Accuracy to drop to the 70% range.
-
-- **Observations and Limitations:**  
-  Some models, such as K-NN, may show extremely high TPR but also an excessive FPR.
-
-### Step 3: SMOTE + PCA (Dimensionality Reduction)
-
-- **Purpose:**  
-  Apply PCA to the SMOTE-augmented data to reduce dimensionality and noise, addressing the “curse of dimensionality.”
-
-- **Improvement Effects:**  
-  - Reduces the feature set (e.g., from 204 to 50 components) and lowers noise.  
-  - Accuracy recovers to approximately 83.65% with FPR reduced to 11.38%.  
-  - TPR decreases slightly compared to the SMOTE-only stage, but the overall balance between precision and recall improves, leading to a higher F1 Score (approximately 0.5428).
-
-- **Observations and Limitations:**  
-  Some important information might be lost during dimensionality reduction, and performance improvements vary across models.
-
-### Step 4: SMOTE + Statistics-Based Feature Selection + Hierarchical PCA + GridSearchCV
-
-- **Purpose:**  
-  Combine statistics-based feature selection with hierarchical PCA for more effective feature extraction and dimensionality reduction. Optimize classifier selection using GridSearchCV.
-
-- **Hybrid Feature Selection:**  
-  - Calculate Pearson correlation coefficients between features and the target variable.  
-  - Apply VarianceThreshold to remove features with low correlation or variance, retaining only the most significant features.
-
-- **Hierarchical PCA:**  
-  - Cluster features and apply PCA within each cluster to effectively capture the most important information.
-
-- **Optimization Using GridSearchCV:**  
-  Perform cross-validation for multiple classifiers and parameters to select the optimal model.
-
-- **Improvement Effects and Limitations:**  
-  - Overall predictive performance (Accuracy, TPR, FPR, and F1 Score) is enhanced compared to using simple preprocessing or single techniques alone.  
-  - The increased computational cost and complexity of parameter optimization are notable challenges.
+4. **Model Training and Optimization:**
+   - Evaluation of six classifiers (Decision Tree, Naive Bayes, Logistic Regression, K-NN, SVM, Neural Network) at different stages.
+   - Optimization of classifier hyperparameters using GridSearchCV, leading to the final selection of a hybrid pipeline with an MLPClassifier.
 
 ---
 
-## Final Evaluation and Comparative Analysis
+## Experiments
 
-- **Step 1 (Original Data):**  
-  - High Accuracy but low TPR and F1 Score due to class imbalance.
-  
-- **Step 2 (SMOTE Applied):**  
-  - Improved TPR through data augmentation, but at the cost of increased FPR and lower overall Accuracy.
-  
-- **Step 3 (SMOTE + PCA):**  
-  - Dimensionality reduction reduced noise and improved Accuracy and F1 Score, though TPR remained slightly low.
-  
-- **Step 4 (Final Hybrid Model):**  
-  - The integrated pipeline (SMOTE + statistics-based feature selection + hierarchical PCA + GridSearchCV) achieved high Accuracy (89.81%) and extremely low FPR (4.14%), with a stable F1 Score (0.5728), making it well-suited for quality management in manufacturing processes.
+### Data Preprocessing
+
+- **Missing Values:** Columns with more than 50% missing values were removed. Remaining missing entries were imputed using sequential fill methods to maintain data continuity.
+- **Noise Reduction:** Constant features and highly correlated features (threshold > 0.7) were eliminated to reduce redundancy.
+- **Normalization:** StandardScaler was applied to standardize feature scales across the dataset.
+- **Data Visualization:** Distribution plots confirmed the severe class imbalance (~93.36% normal vs. ~6.64% defective).
+
+### Model Training and Evaluation
+
+The experiments were conducted in multiple steps:
+
+1. **Step 1:** Training on preprocessed imbalanced data.
+   - High accuracy (~82.64%) but poor detection of the minority class (low TPR and F1 Score).
+2. **Step 2:** Application of SMOTE.
+   - Improved TPR (~36.81%) at the cost of increased false positive rate (FPR).
+3. **Step 3:** Incorporation of PCA.
+   - Restoration of accuracy (~83.65%) and significant reduction in FPR, albeit with a slight decrease in TPR.
+4. **Step 4:** Use of statistical feature selection and hierarchical PCA.
+   - Enhanced TPR and F1 Score, with a trade-off of a modest increase in FPR.
+5. **Step 5:** Optimization using GridSearchCV.
+   - Final model achieved high accuracy (89.81%), a very low FPR (4.14%), with acceptable TPR and improved F1 Score.
 
 ---
 
-## Conclusions and Future Research Directions
+## Experimental Evaluation
 
-- **Key Achievements:**  
-  - Improved data quality through preprocessing (missing value treatment, removal of constant/multicollinear features, normalization).  
-  - Addressed class imbalance using SMOTE.  
-  - Enhanced model performance through PCA and hierarchical PCA for dimensionality reduction and noise removal.  
-  - Achieved further performance optimization using statistics-based feature selection and GridSearchCV.
+The evaluation of each stage of the pipeline highlights several key points:
 
-- **Future Research Directions:**  
-  - Compare performance with deep neural networks or deep learning models.  
-  - Explore applications in real-time data streaming environments.  
-  - Investigate further combinations of various feature selection and dimensionality reduction techniques for more refined anomaly detection models.
+- **Overcoming Imbalanced Data:** SMOTE effectively increased the detection rate of defects but required careful handling to avoid a high false positive rate.
+- **Dimensionality Reduction:** PCA reduced noise and computational cost, leading to improvements in overall accuracy and model stability.
+- **Feature Selection and Hierarchical PCA:** By concentrating on the most meaningful features, this stage further improved minority class detection, although it introduced a slight increase in FPR.
+- **Hyperparameter Optimization:** GridSearchCV fine-tuned model parameters, achieving a final model that balances the trade-off between false positives and defect detection.
+
+---
+
+## Conclusion and Future Work
+
+This project demonstrates that an integrated pipeline combining data preprocessing, SMOTE, PCA/hierarchical PCA, statistical feature selection, and model optimization can substantially enhance anomaly detection in semiconductor manufacturing. Key outcomes include:
+
+- A significant reduction in false positives, critical for quality control.
+- Improved overall performance metrics such as Accuracy and F1 Score.
+
+**Future Work:**
+
+- Explore alternative imbalance handling techniques such as ADASYN or undersampling.
+- Investigate non-linear dimensionality reduction methods (e.g., autoencoders) to preserve complex feature interactions.
+- Enhance the feature selection process by incorporating non-linear metrics like Mutual Information.
+- Extend the system to handle real-time data streaming and online learning for immediate anomaly detection in production environments.
 
 ---
 
 ## References
 
-[1] McCann, M. & Johnston, A. (2008). SECOM [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C54305.
+1. McCann, M. & Johnston, A. (2008). SECOM [Dataset]. UCI Machine Learning Repository.
+2. Chawla, N. V., Bowyer, K. W., Hall, L. O., & Kegelmeyer, W. P. (2002). SMOTE: Synthetic Minority Over-sampling Technique. *Journal of Artificial Intelligence Research, 16*, 321-357.
+3. Jolliffe, I. T. (2002). *Principal Component Analysis* (2nd ed.). Springer.
+4. Breiman, L. (2001). Random forests. *Machine Learning, 45*(1), 5-32.
+5. He, H., & Garcia, E. A. (2009). Learning from imbalanced data. *IEEE Transactions on Knowledge and Data Engineering, 21*(9), 1263-1284.
+6. Van Hulse, J., Khoshgoftaar, T. M., & Napolitano, A. (2007). Experimental perspectives on learning from imbalanced data. In *Proceedings of the 2007 ACM symposium on Applied computing* (pp. 984-988).
+7. Blagus, R., & Lusa, L. (2013). SMOTE for high-dimensional class-imbalanced data. *BMC Bioinformatics, 14*(1), 106.
 
+---
+
+## Usage
+
+To get started with this project, follow these steps:
+
+1. **Clone the Repository:**
+   ```bash
+   git clone https://github.com/Seongjin74/Efficient-Semiconductor-Anomaly-Detection.git
+   cd Efficient-Semiconductor-Anomaly-Detection
+   ```
+2. **Install Dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+3. **Clone the Repository:**
+   ```bash
+   python main.py
+
+   ```
+   
+4. **View Results:
+
+Check the output logs for model performance metrics and visualizations generated during each experiment stage.
