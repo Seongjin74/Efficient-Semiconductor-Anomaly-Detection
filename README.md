@@ -156,6 +156,6 @@ To get started with this project, follow these steps:
 
    ```
    
-4. **View Results:
+4. **View Results:**
 
 Check the output logs for model performance metrics and visualizations generated during each experiment stage.
